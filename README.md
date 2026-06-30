@@ -1,5 +1,12 @@
 # Navien NaviLink Water Heater — Home Assistant Integration
 
+![Release](https://img.shields.io/github/v/release/willh6/hass_navien_water_heater?style=for-the-badge&color=green)
+![Release Date](https://img.shields.io/github/release-date/willh6/hass_navien_water_heater?style=for-the-badge)
+![Downloads](https://img.shields.io/github/downloads/willh6/hass_navien_water_heater/latest/total?style=for-the-badge)
+![Commit Activity](https://img.shields.io/github/commit-activity/m/willh6/hass_navien_water_heater?style=for-the-badge&color=blue)
+![HACS](https://img.shields.io/badge/HACS-Integration-blue?style=for-the-badge)
+![License](https://img.shields.io/github/license/willh6/hass_navien_water_heater?style=for-the-badge)
+
 Control and monitor Navien water heaters connected to the Navien cloud via a
 [NaviLink or NaviLink Lite](https://www.navieninc.com/accessories/navilink)
 control system.
