@@ -133,6 +133,17 @@ class NavilinkConnect():
             # SDK even raises AttributeError from its own destructor. Swallow it
             # so cleanup can't itself break the reconnect path.
             _LOGGER.debug("Error during MQTT client cleanup (ignored): %s", e)
+        finally:
+            # v2.0.0: defense in depth against the response_events leak fixed
+            # in async_publish()—any stray entries (asyncio.Event objects tied
+            # to in-flight requests on the now-dead client) can't be answered
+            # by a connection that no longer exists, so clear them here too.
+            if self.response_events:
+                _LOGGER.debug(
+                    "Clearing %d stale response_events entries on cleanup",
+                    len(self.response_events),
+                )
+                self.response_events.clear()
 
     async def _schedule_reconnect(self):
         """Reconnect once, with backoff, ensuring only one loop is ever active."""
@@ -288,23 +299,24 @@ class NavilinkConnect():
         try:
             def publish():
                 self.client.publish(topic=topic,payload=json.dumps(payload,separators=(',',':')),QoS=QoS)
-                                
+
             async with self.client_lock:
                 await self.loop.run_in_executor(None,publish)
 
-            if response_event :=  self.response_events.get(session_id,None):
+            if session_id and (response_event := self.response_events.get(session_id,None)):
                 try:
                     await asyncio.wait_for(response_event.wait(),timeout=self.polling_interval)
-                except:
+                except Exception:
                     pass
-                response_event.clear()
-                self.response_events.pop(session_id)
         except Exception as e:
             _LOGGER.debug("Error occurred in async_publish: " + str(e))
-            if response_event :=  self.response_events.get(session_id,None):
-                response_event.clear()
-                self.response_events.pop(session_id)
-            await self.disconnect(shutting_down=False)   
+            await self.disconnect(shutting_down=False)
+        finally:
+            # v2.0.0: always clean up the response_events entry for this
+            # session_id, on every exit path (success, timeout, exception, or
+            # cancellation)—not just the two paths the original code covered.
+            if session_id:
+                self.response_events.pop(session_id, None)
 
 
     async def _subscribe_to_topics(self):
